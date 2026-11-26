@@ -1,0 +1,39 @@
+<!--
+  =====================================================================
+  FRAGMENTOS PARA EL Web.config DE wsReservacionesFull
+  Agrega estas secciones DENTRO de <configuration> ... </configuration>
+  del Web.config que generó Visual Studio (no reemplaces el archivo completo).
+  - Si ya existe <system.web>, solo agrega <sessionState> y <pages> dentro de él.
+  - Si ya existe <system.webServer>, solo agrega <defaultDocument> y <staticContent>.
+  =====================================================================
+-->
+
+  <appSettings>
+    <!-- URL de la Web API que usa el SERVIDOR (code-behind con HttpClient).
+         Local: la URL https://localhost:PUERTO con la que corre apiRESTReservacionesFull en Visual Studio. -->
+    <add key="urlApi" value="https://localhost:44396" />
+
+    <!-- URL de la Web API que usa el NAVEGADOR (EventSource del canal PUSH en js/push.js).
+         Local: la misma de arriba. En AWS (Web.Release.config): /apiReservaciones -->
+    <add key="urlApiPublica" value="https://localhost:44396" />
+  </appSettings>
+
+  <system.web>
+    <!-- (agregar dentro del <system.web> existente) -->
+    <sessionState mode="InProc" timeout="30" />
+  </system.web>
+
+  <system.webServer>
+    <defaultDocument>
+      <files>
+        <clear />
+        <add value="Default.aspx" />
+      </files>
+    </defaultDocument>
+    <staticContent>
+      <remove fileExtension=".woff2" />
+      <mimeMap fileExtension=".woff2" mimeType="font/woff2" />
+      <remove fileExtension=".svg" />
+      <mimeMap fileExtension=".svg" mimeType="image/svg+xml" />
+    </staticContent>
+  </system.webServer>

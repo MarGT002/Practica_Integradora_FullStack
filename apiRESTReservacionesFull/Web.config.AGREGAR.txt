@@ -1,0 +1,29 @@
+<!--
+  =====================================================================
+  FRAGMENTOS PARA EL Web.config DE apiRESTReservacionesFull
+  Copia estas secciones DENTRO de <configuration> ... </configuration>
+  del Web.config que generó Visual Studio (no reemplaces el archivo completo).
+  Si ya existe <appSettings>, solo agrega las <add .../> que faltan.
+  =====================================================================
+-->
+
+  <connectionStrings>
+    <!-- MySQL LOCAL (cambia Pwd por tu contraseña de root) -->
+    <add name="bdReservaciones"
+         connectionString="Server=localhost;Port=3306;Database=reservaciones;Uid=root;Pwd=TU_PASSWORD;CharSet=utf8mb4;SslMode=Disabled;AllowPublicKeyRetrieval=True;"
+         providerName="MySql.Data.MySqlClient" />
+
+    <!-- MySQL en AWS RDS (pega tu punto de enlace / endpoint de RDS) -->
+    <add name="bdReservacionesAws"
+         connectionString="Server=TU_ENDPOINT.rds.amazonaws.com;Port=3306;Database=reservaciones;Uid=admin;Pwd=FullStack_26A.;CharSet=utf8mb4;SslMode=Preferred;"
+         providerName="MySql.Data.MySqlClient" />
+  </connectionStrings>
+
+  <appSettings>
+    <!-- Cadena que usa la API: bdReservaciones (local) o bdReservacionesAws (RDS) -->
+    <add key="conexionActiva" value="bdReservacionesAws" />
+
+    <!-- Orígenes permitidos por CORS (separados por coma). "*" = cualquiera.
+         Ejemplo restringido: https://localhost:44367,http://TU_IP_ELASTICA -->
+    <add key="corsOrigenes" value="*" />
+  </appSettings>

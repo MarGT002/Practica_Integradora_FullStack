@@ -1,0 +1,1550 @@
+{
+  "info": {
+    "_postman_id": "31292039-c961-498c-9e84-29ea0c6d6d52",
+    "name": "Sistema de Reservaciones - Practica Integradora",
+    "description": "Pruebas PULL / PUSH de apiRESTReservacionesFull.\n\n1. Ajusta las variables de la colección baseLocal y baseAws.\n2. Para https://localhost desactiva en Postman Settings > General > SSL certificate verification.\n3. Ejecuta las carpetas en orden (Runner) excepto 07a (stream), que se abre a mano.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "LOCAL (Visual Studio)",
+      "description": "Pruebas locales: la API corriendo en Visual Studio (IIS Express).",
+      "item": [
+        {
+          "name": "01 Login correcto",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test('ban = 1 (acceso correcto)', () => pm.expect(r.ban).to.eql(1));",
+                  "pm.test('Regresa datos básicos del usuario', () => { pm.expect(r.datos).to.have.property('nombre_completo'); pm.expect(r.datos).to.have.property('rol'); });",
+                  "pm.collectionVariables.set('idUsuario', r.datos.id_usuario);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Usuario",
+                "value": "{{usuarioPrueba}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseLocal}}/api/acceso/login",
+              "host": [
+                "{{baseLocal}}"
+              ],
+              "path": [
+                "api",
+                "acceso",
+                "login"
+              ]
+            },
+            "description": "Prueba 1: valida usuario y contraseña. Genera notificación PUSH tipo LOGIN.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuario\": \"{{usuarioPrueba}}\",\n  \"password\": \"{{passwordPrueba}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "01b Login incorrecto",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+                  "pm.test('ban = 0 (acceso denegado)', () => pm.expect(pm.response.json().ban).to.eql(0));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Usuario",
+                "value": "{{usuarioPrueba}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseLocal}}/api/acceso/login",
+              "host": [
+                "{{baseLocal}}"
+              ],
+              "path": [
+                "api",
+                "acceso",
+                "login"
+              ]
+            },
+            "description": "Acceso denegado. Genera notificación PUSH tipo LOGIN_FALLIDO.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuario\": \"{{usuarioPrueba}}\",\n  \"password\": \"incorrecta\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "02 Consultar espacios",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test('Regresa espacios activos', () => { pm.expect(r.ban).to.be.at.least(5); pm.expect(r.datos.vwEspaciosActivos.length).to.eql(r.ban); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Usuario",
+                "value": "{{usuarioPrueba}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseLocal}}/api/espacios",
+              "host": [
+                "{{baseLocal}}"
+              ],
+              "path": [
+                "api",
+                "espacios"
+              ]
+            },
+            "description": "Prueba 2: espacios activos (vista vwEspaciosActivos)."
+          }
+        },
+        {
+          "name": "03 Validar disponibilidad libre",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Genera una fecha futura y un horario al azar para que la prueba se pueda repetir",
+                  "const dias = 20 + Math.floor(Math.random() * 300);",
+                  "const f = new Date(Date.now() + dias * 86400000);",
+                  "const fecha = f.toISOString().slice(0, 10);",
+                  "const h = 7 + Math.floor(Math.random() * 12);",
+                  "const hh = n => String(n).padStart(2, '0') + ':00';",
+                  "pm.collectionVariables.set('fechaPrueba', fecha);",
+                  "pm.collectionVariables.set('horaInicio', hh(h));",
+                  "pm.collectionVariables.set('horaFin', hh(h + 2));",
+                  "pm.collectionVariables.set('horaCruceInicio', hh(h + 1));",
+                  "pm.collectionVariables.set('horaCruceFin', hh(h + 3));",
+                  "pm.collectionVariables.set('idEspacioPrueba', String(1 + Math.floor(Math.random() * 5)));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('ban = 1 (disponible)', () => pm.expect(pm.response.json().ban).to.eql(1));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Usuario",
+                "value": "{{usuarioPrueba}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseLocal}}/api/disponibilidad?id_espacio={{idEspacioPrueba}}&fecha={{fechaPrueba}}&hora_inicio={{horaInicio}}&hora_fin={{horaFin}}",
+              "host": [
+                "{{baseLocal}}"
+              ],
+              "path": [
+                "api",
+                "disponibilidad"
+              ],
+              "query": [
+                {
+                  "key": "id_espacio",
+                  "value": "{{idEspacioPrueba}}"
+                },
+                {
+                  "key": "fecha",
+                  "value": "{{fechaPrueba}}"
+                },
+                {
+                  "key": "hora_inicio",
+                  "value": "{{horaInicio}}"
+                },
+                {
+                  "key": "hora_fin",
+                  "value": "{{horaFin}}"
+                }
+              ]
+            },
+            "description": "Prueba 3: horario libre. El pre-request genera fecha y horas al azar."
+          }
+        },
+        {
+          "name": "04 Registrar reserva valida",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "const r = pm.response.json();",
+                  "pm.test('ban = 0 (registro guardado en MySQL)', () => pm.expect(r.ban).to.eql(0));",
+                  "pm.test('Regresa id_reserva', () => pm.expect(r.datos.id_reserva).to.be.above(0));",
+                  "pm.collectionVariables.set('idReservaNueva', r.datos.id_reserva);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Usuario",
+                "value": "{{usuarioPrueba}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseLocal}}/api/reservas",
+              "host": [
+                "{{baseLocal}}"
+              ],
+              "path": [
+                "api",
+                "reservas"
+              ]
+            },
+            "description": "Prueba 4: registro válido (spInsReserva).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_espacio\": \"{{idEspacioPrueba}}\",\n  \"id_usuario\": \"{{idUsuario}}\",\n  \"fecha_reserva\": \"{{fechaPrueba}}\",\n  \"hora_inicio\": \"{{horaInicio}}\",\n  \"hora_fin\": \"{{horaFin}}\",\n  \"motivo\": \"Prueba Postman - reserva válida\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "05 Intentar reserva con cruce",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 409 Conflict', () => pm.response.to.have.status(409));",
+                  "pm.test('ban = 1 (conflicto)', () => pm.expect(pm.response.json().ban).to.eql(1));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Usuario",
+                "value": "{{usuarioPrueba}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseLocal}}/api/reservas",
+              "host": [
+                "{{baseLocal}}"
+              ],
+              "path": [
+                "api",
+                "reservas"
+              ]
+            },
+            "description": "Prueba 5: se cruza 1 hora con la reserva anterior. Debe rechazarse.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_espacio\": \"{{idEspacioPrueba}}\",\n  \"id_usuario\": \"{{idUsuario}}\",\n  \"fecha_reserva\": \"{{fechaPrueba}}\",\n  \"hora_inicio\": \"{{horaCruceInicio}}\",\n  \"hora_fin\": \"{{horaCruceFin}}\",\n  \"motivo\": \"Prueba Postman - cruce de horario\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "05b Validar disponibilidad con cruce",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+                  "const r = pm.response.json();",
+                  "pm.test('ban = 0 (no disponible)', () => pm.expect(r.ban).to.eql(0));",
+                  "pm.test('Lista las reservas que se cruzan', () => pm.expect(r.datos.conflictos.length).to.be.above(0));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Usuario",
+                "value": "{{usuarioPrueba}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseLocal}}/api/disponibilidad?id_espacio={{idEspacioPrueba}}&fecha={{fechaPrueba}}&hora_inicio={{horaCruceInicio}}&hora_fin={{horaCruceFin}}",
+              "host": [
+                "{{baseLocal}}"
+              ],
+              "path": [
+                "api",
+                "disponibilidad"
+              ],
+              "query": [
+                {
+                  "key": "id_espacio",
+                  "value": "{{idEspacioPrueba}}"
+                },
+                {
+                  "key": "fecha",
+                  "value": "{{fechaPrueba}}"
+                },
+                {
+                  "key": "hora_inicio",
+                  "value": "{{horaCruceInicio}}"
+                },
+                {
+                  "key": "hora_fin",
+                  "value": "{{horaCruceFin}}"
+                }
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "05c Horario invalido (fin <= inicio)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('ban = 2 (horario inválido)', () => pm.expect(pm.response.json().ban).to.eql(2));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Usuario",
+                "value": "{{usuarioPrueba}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseLocal}}/api/disponibilidad?id_espacio=1&fecha={{fechaPrueba}}&hora_inicio=12:00&hora_fin=10:00",
+              "host": [
+                "{{baseLocal}}"
+              ],
+              "path": [
+                "api",
+                "disponibilidad"
+              ],
+              "query": [
+                {
+                  "key": "id_espacio",
+                  "value": "1"
+                },
+                {
+                  "key": "fecha",
+                  "value": "{{fechaPrueba}}"
+                },
+                {
+                  "key": "hora_inicio",
+                  "value": "12:00"
+                },
+                {
+                  "key": "hora_fin",
+                  "value": "10:00"
+                }
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "05d Espacio inexistente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 404', () => pm.response.to.have.status(404));",
+                  "pm.test('ban = 3 (espacio inexistente)', () => pm.expect(pm.response.json().ban).to.eql(3));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Usuario",
+                "value": "{{usuarioPrueba}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseLocal}}/api/reservas",
+              "host": [
+                "{{baseLocal}}"
+              ],
+              "path": [
+                "api",
+                "reservas"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_espacio\": 999,\n  \"id_usuario\": \"{{idUsuario}}\",\n  \"fecha_reserva\": \"{{fechaPrueba}}\",\n  \"hora_inicio\": \"08:00\",\n  \"hora_fin\": \"09:00\",\n  \"motivo\": \"Espacio que no existe\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "06 Consultar reservas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test('Respuesta con listado JSON', () => { pm.expect(r.datos.vwReservas).to.be.an('array'); pm.expect(r.ban).to.be.at.least(15); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Usuario",
+                "value": "{{usuarioPrueba}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseLocal}}/api/reservas",
+              "host": [
+                "{{baseLocal}}"
+              ],
+              "path": [
+                "api",
+                "reservas"
+              ]
+            },
+            "description": "Prueba 6: listado completo (spConsultarReservas / vwReservas)."
+          }
+        },
+        {
+          "name": "06b Consultar reservas activas por espacio",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Solo activas', () => pm.response.json().datos.vwReservas.forEach(x => pm.expect(x.estado).to.eql('Activa')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Usuario",
+                "value": "{{usuarioPrueba}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseLocal}}/api/reservas?estado=Activa&id_espacio={{idEspacioPrueba}}&fecha=&id_usuario=0",
+              "host": [
+                "{{baseLocal}}"
+              ],
+              "path": [
+                "api",
+                "reservas"
+              ],
+              "query": [
+                {
+                  "key": "estado",
+                  "value": "Activa"
+                },
+                {
+                  "key": "id_espacio",
+                  "value": "{{idEspacioPrueba}}"
+                },
+                {
+                  "key": "fecha",
+                  "value": ""
+                },
+                {
+                  "key": "id_usuario",
+                  "value": "0"
+                }
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "06c Cancelar la reserva de prueba",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('ban = 0 (cancelada)', () => pm.expect(pm.response.json().ban).to.eql(0));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Usuario",
+                "value": "{{usuarioPrueba}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseLocal}}/api/reservas/{{idReservaNueva}}/cancelar",
+              "host": [
+                "{{baseLocal}}"
+              ],
+              "path": [
+                "api",
+                "reservas",
+                "{{idReservaNueva}}",
+                "cancelar"
+              ]
+            },
+            "description": "Opcional: libera el horario de la prueba 4."
+          }
+        },
+        {
+          "name": "07 Notificaciones PUSH",
+          "item": [
+            {
+              "name": "07a Abrir canal PUSH (stream SSE)",
+              "event": [],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Usuario",
+                    "value": "{{usuarioPrueba}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseLocal}}/api/stream",
+                  "host": [
+                    "{{baseLocal}}"
+                  ],
+                  "path": [
+                    "api",
+                    "stream"
+                  ]
+                },
+                "description": "Ábrelo en una pestaña aparte con Send y déjalo abierto: verás el evento 'conexion', los 'heartbeat' cada 5 s y una 'notificacion' por cada endpoint que ejecutes. No lo incluyas en el Runner (la conexión no termina)."
+              }
+            },
+            {
+              "name": "07b Estado del canal",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "pm.test('Regresa clientes conectados', () => pm.expect(pm.response.json().datos).to.have.property('clientesConectados'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Usuario",
+                    "value": "{{usuarioPrueba}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseLocal}}/api/estado",
+                  "host": [
+                    "{{baseLocal}}"
+                  ],
+                  "path": [
+                    "api",
+                    "estado"
+                  ]
+                },
+                "description": ""
+              }
+            },
+            {
+              "name": "07c Enviar notificacion push",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "pm.test('statusExec = true', () => pm.expect(pm.response.json().statusExec).to.eql(true));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Usuario",
+                    "value": "{{usuarioPrueba}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseLocal}}/api/enviar",
+                  "host": [
+                    "{{baseLocal}}"
+                  ],
+                  "path": [
+                    "api",
+                    "enviar"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tipo\": \"AVISO\",\n  \"titulo\": \"Aviso desde Postman\",\n  \"mensaje\": \"Prueba de notificación PUSH\",\n  \"usuario\": \"{{usuarioPrueba}}\",\n  \"nivel\": \"info\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "REMOTO (AWS EC2)",
+      "description": "Pruebas remotas: la API publicada en IIS de EC2 con la IP pública / elástica, conectada a RDS.",
+      "item": [
+        {
+          "name": "01 Login correcto",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test('ban = 1 (acceso correcto)', () => pm.expect(r.ban).to.eql(1));",
+                  "pm.test('Regresa datos básicos del usuario', () => { pm.expect(r.datos).to.have.property('nombre_completo'); pm.expect(r.datos).to.have.property('rol'); });",
+                  "pm.collectionVariables.set('idUsuario', r.datos.id_usuario);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Usuario",
+                "value": "{{usuarioPrueba}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseAws}}/api/acceso/login",
+              "host": [
+                "{{baseAws}}"
+              ],
+              "path": [
+                "api",
+                "acceso",
+                "login"
+              ]
+            },
+            "description": "Prueba 1: valida usuario y contraseña. Genera notificación PUSH tipo LOGIN.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuario\": \"{{usuarioPrueba}}\",\n  \"password\": \"{{passwordPrueba}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "01b Login incorrecto",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+                  "pm.test('ban = 0 (acceso denegado)', () => pm.expect(pm.response.json().ban).to.eql(0));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Usuario",
+                "value": "{{usuarioPrueba}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseAws}}/api/acceso/login",
+              "host": [
+                "{{baseAws}}"
+              ],
+              "path": [
+                "api",
+                "acceso",
+                "login"
+              ]
+            },
+            "description": "Acceso denegado. Genera notificación PUSH tipo LOGIN_FALLIDO.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuario\": \"{{usuarioPrueba}}\",\n  \"password\": \"incorrecta\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "02 Consultar espacios",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test('Regresa espacios activos', () => { pm.expect(r.ban).to.be.at.least(5); pm.expect(r.datos.vwEspaciosActivos.length).to.eql(r.ban); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Usuario",
+                "value": "{{usuarioPrueba}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseAws}}/api/espacios",
+              "host": [
+                "{{baseAws}}"
+              ],
+              "path": [
+                "api",
+                "espacios"
+              ]
+            },
+            "description": "Prueba 2: espacios activos (vista vwEspaciosActivos)."
+          }
+        },
+        {
+          "name": "03 Validar disponibilidad libre",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Genera una fecha futura y un horario al azar para que la prueba se pueda repetir",
+                  "const dias = 20 + Math.floor(Math.random() * 300);",
+                  "const f = new Date(Date.now() + dias * 86400000);",
+                  "const fecha = f.toISOString().slice(0, 10);",
+                  "const h = 7 + Math.floor(Math.random() * 12);",
+                  "const hh = n => String(n).padStart(2, '0') + ':00';",
+                  "pm.collectionVariables.set('fechaPrueba', fecha);",
+                  "pm.collectionVariables.set('horaInicio', hh(h));",
+                  "pm.collectionVariables.set('horaFin', hh(h + 2));",
+                  "pm.collectionVariables.set('horaCruceInicio', hh(h + 1));",
+                  "pm.collectionVariables.set('horaCruceFin', hh(h + 3));",
+                  "pm.collectionVariables.set('idEspacioPrueba', String(1 + Math.floor(Math.random() * 5)));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('ban = 1 (disponible)', () => pm.expect(pm.response.json().ban).to.eql(1));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Usuario",
+                "value": "{{usuarioPrueba}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseAws}}/api/disponibilidad?id_espacio={{idEspacioPrueba}}&fecha={{fechaPrueba}}&hora_inicio={{horaInicio}}&hora_fin={{horaFin}}",
+              "host": [
+                "{{baseAws}}"
+              ],
+              "path": [
+                "api",
+                "disponibilidad"
+              ],
+              "query": [
+                {
+                  "key": "id_espacio",
+                  "value": "{{idEspacioPrueba}}"
+                },
+                {
+                  "key": "fecha",
+                  "value": "{{fechaPrueba}}"
+                },
+                {
+                  "key": "hora_inicio",
+                  "value": "{{horaInicio}}"
+                },
+                {
+                  "key": "hora_fin",
+                  "value": "{{horaFin}}"
+                }
+              ]
+            },
+            "description": "Prueba 3: horario libre. El pre-request genera fecha y horas al azar."
+          }
+        },
+        {
+          "name": "04 Registrar reserva valida",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "const r = pm.response.json();",
+                  "pm.test('ban = 0 (registro guardado en MySQL)', () => pm.expect(r.ban).to.eql(0));",
+                  "pm.test('Regresa id_reserva', () => pm.expect(r.datos.id_reserva).to.be.above(0));",
+                  "pm.collectionVariables.set('idReservaNueva', r.datos.id_reserva);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Usuario",
+                "value": "{{usuarioPrueba}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseAws}}/api/reservas",
+              "host": [
+                "{{baseAws}}"
+              ],
+              "path": [
+                "api",
+                "reservas"
+              ]
+            },
+            "description": "Prueba 4: registro válido (spInsReserva).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_espacio\": \"{{idEspacioPrueba}}\",\n  \"id_usuario\": \"{{idUsuario}}\",\n  \"fecha_reserva\": \"{{fechaPrueba}}\",\n  \"hora_inicio\": \"{{horaInicio}}\",\n  \"hora_fin\": \"{{horaFin}}\",\n  \"motivo\": \"Prueba Postman - reserva válida\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "05 Intentar reserva con cruce",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 409 Conflict', () => pm.response.to.have.status(409));",
+                  "pm.test('ban = 1 (conflicto)', () => pm.expect(pm.response.json().ban).to.eql(1));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Usuario",
+                "value": "{{usuarioPrueba}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseAws}}/api/reservas",
+              "host": [
+                "{{baseAws}}"
+              ],
+              "path": [
+                "api",
+                "reservas"
+              ]
+            },
+            "description": "Prueba 5: se cruza 1 hora con la reserva anterior. Debe rechazarse.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_espacio\": \"{{idEspacioPrueba}}\",\n  \"id_usuario\": \"{{idUsuario}}\",\n  \"fecha_reserva\": \"{{fechaPrueba}}\",\n  \"hora_inicio\": \"{{horaCruceInicio}}\",\n  \"hora_fin\": \"{{horaCruceFin}}\",\n  \"motivo\": \"Prueba Postman - cruce de horario\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "05b Validar disponibilidad con cruce",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+                  "const r = pm.response.json();",
+                  "pm.test('ban = 0 (no disponible)', () => pm.expect(r.ban).to.eql(0));",
+                  "pm.test('Lista las reservas que se cruzan', () => pm.expect(r.datos.conflictos.length).to.be.above(0));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Usuario",
+                "value": "{{usuarioPrueba}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseAws}}/api/disponibilidad?id_espacio={{idEspacioPrueba}}&fecha={{fechaPrueba}}&hora_inicio={{horaCruceInicio}}&hora_fin={{horaCruceFin}}",
+              "host": [
+                "{{baseAws}}"
+              ],
+              "path": [
+                "api",
+                "disponibilidad"
+              ],
+              "query": [
+                {
+                  "key": "id_espacio",
+                  "value": "{{idEspacioPrueba}}"
+                },
+                {
+                  "key": "fecha",
+                  "value": "{{fechaPrueba}}"
+                },
+                {
+                  "key": "hora_inicio",
+                  "value": "{{horaCruceInicio}}"
+                },
+                {
+                  "key": "hora_fin",
+                  "value": "{{horaCruceFin}}"
+                }
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "05c Horario invalido (fin <= inicio)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('ban = 2 (horario inválido)', () => pm.expect(pm.response.json().ban).to.eql(2));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Usuario",
+                "value": "{{usuarioPrueba}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseAws}}/api/disponibilidad?id_espacio=1&fecha={{fechaPrueba}}&hora_inicio=12:00&hora_fin=10:00",
+              "host": [
+                "{{baseAws}}"
+              ],
+              "path": [
+                "api",
+                "disponibilidad"
+              ],
+              "query": [
+                {
+                  "key": "id_espacio",
+                  "value": "1"
+                },
+                {
+                  "key": "fecha",
+                  "value": "{{fechaPrueba}}"
+                },
+                {
+                  "key": "hora_inicio",
+                  "value": "12:00"
+                },
+                {
+                  "key": "hora_fin",
+                  "value": "10:00"
+                }
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "05d Espacio inexistente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 404', () => pm.response.to.have.status(404));",
+                  "pm.test('ban = 3 (espacio inexistente)', () => pm.expect(pm.response.json().ban).to.eql(3));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Usuario",
+                "value": "{{usuarioPrueba}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseAws}}/api/reservas",
+              "host": [
+                "{{baseAws}}"
+              ],
+              "path": [
+                "api",
+                "reservas"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_espacio\": 999,\n  \"id_usuario\": \"{{idUsuario}}\",\n  \"fecha_reserva\": \"{{fechaPrueba}}\",\n  \"hora_inicio\": \"08:00\",\n  \"hora_fin\": \"09:00\",\n  \"motivo\": \"Espacio que no existe\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "06 Consultar reservas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test('Respuesta con listado JSON', () => { pm.expect(r.datos.vwReservas).to.be.an('array'); pm.expect(r.ban).to.be.at.least(15); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Usuario",
+                "value": "{{usuarioPrueba}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseAws}}/api/reservas",
+              "host": [
+                "{{baseAws}}"
+              ],
+              "path": [
+                "api",
+                "reservas"
+              ]
+            },
+            "description": "Prueba 6: listado completo (spConsultarReservas / vwReservas)."
+          }
+        },
+        {
+          "name": "06b Consultar reservas activas por espacio",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Solo activas', () => pm.response.json().datos.vwReservas.forEach(x => pm.expect(x.estado).to.eql('Activa')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Usuario",
+                "value": "{{usuarioPrueba}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseAws}}/api/reservas?estado=Activa&id_espacio={{idEspacioPrueba}}&fecha=&id_usuario=0",
+              "host": [
+                "{{baseAws}}"
+              ],
+              "path": [
+                "api",
+                "reservas"
+              ],
+              "query": [
+                {
+                  "key": "estado",
+                  "value": "Activa"
+                },
+                {
+                  "key": "id_espacio",
+                  "value": "{{idEspacioPrueba}}"
+                },
+                {
+                  "key": "fecha",
+                  "value": ""
+                },
+                {
+                  "key": "id_usuario",
+                  "value": "0"
+                }
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "06c Cancelar la reserva de prueba",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('ban = 0 (cancelada)', () => pm.expect(pm.response.json().ban).to.eql(0));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Usuario",
+                "value": "{{usuarioPrueba}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseAws}}/api/reservas/{{idReservaNueva}}/cancelar",
+              "host": [
+                "{{baseAws}}"
+              ],
+              "path": [
+                "api",
+                "reservas",
+                "{{idReservaNueva}}",
+                "cancelar"
+              ]
+            },
+            "description": "Opcional: libera el horario de la prueba 4."
+          }
+        },
+        {
+          "name": "07 Notificaciones PUSH",
+          "item": [
+            {
+              "name": "07a Abrir canal PUSH (stream SSE)",
+              "event": [],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Usuario",
+                    "value": "{{usuarioPrueba}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseAws}}/api/stream",
+                  "host": [
+                    "{{baseAws}}"
+                  ],
+                  "path": [
+                    "api",
+                    "stream"
+                  ]
+                },
+                "description": "Ábrelo en una pestaña aparte con Send y déjalo abierto: verás el evento 'conexion', los 'heartbeat' cada 5 s y una 'notificacion' por cada endpoint que ejecutes. No lo incluyas en el Runner (la conexión no termina)."
+              }
+            },
+            {
+              "name": "07b Estado del canal",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "pm.test('Regresa clientes conectados', () => pm.expect(pm.response.json().datos).to.have.property('clientesConectados'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Usuario",
+                    "value": "{{usuarioPrueba}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseAws}}/api/estado",
+                  "host": [
+                    "{{baseAws}}"
+                  ],
+                  "path": [
+                    "api",
+                    "estado"
+                  ]
+                },
+                "description": ""
+              }
+            },
+            {
+              "name": "07c Enviar notificacion push",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                      "pm.test('statusExec = true', () => pm.expect(pm.response.json().statusExec).to.eql(true));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Usuario",
+                    "value": "{{usuarioPrueba}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseAws}}/api/enviar",
+                  "host": [
+                    "{{baseAws}}"
+                  ],
+                  "path": [
+                    "api",
+                    "enviar"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tipo\": \"AVISO\",\n  \"titulo\": \"Aviso desde Postman\",\n  \"mensaje\": \"Prueba de notificación PUSH\",\n  \"usuario\": \"{{usuarioPrueba}}\",\n  \"nivel\": \"info\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseLocal",
+      "value": "https://localhost:44396"
+    },
+    {
+      "key": "baseAws",
+      "value": "http://TU_IP_ELASTICA/apiReservaciones"
+    },
+    {
+      "key": "usuarioPrueba",
+      "value": "lmendez"
+    },
+    {
+      "key": "passwordPrueba",
+      "value": "isc2026"
+    },
+    {
+      "key": "idUsuario",
+      "value": "1"
+    },
+    {
+      "key": "idEspacioPrueba",
+      "value": "1"
+    },
+    {
+      "key": "fechaPrueba",
+      "value": "2026-12-15"
+    },
+    {
+      "key": "horaInicio",
+      "value": "08:00"
+    },
+    {
+      "key": "horaFin",
+      "value": "10:00"
+    },
+    {
+      "key": "horaCruceInicio",
+      "value": "09:00"
+    },
+    {
+      "key": "horaCruceFin",
+      "value": "11:00"
+    },
+    {
+      "key": "idReservaNueva",
+      "value": "0"
+    }
+  ]
+}

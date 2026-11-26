@@ -1,0 +1,11 @@
+# Visual Studio / .NET
+.vs/
+bin/
+obj/
+packages/
+*.user
+*.suo
+Web.config.respaldo
+# Publicaciones
+publish/
+*.zip

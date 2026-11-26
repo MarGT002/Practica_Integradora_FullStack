@@ -1,0 +1,95 @@
+<%@ Master Language="C#" AutoEventWireup="true" CodeBehind="Site.Master.cs" Inherits="wsReservacionesFull.SiteMaster" %>
+
+<!DOCTYPE html>
+<html lang="es">
+<head runat="server">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sistema de Reservaciones</title>
+    <link rel="icon" type="image/svg+xml" href="~/imagenes/logo.svg" />
+    <link href="~/bootstrap/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="~/bootstrap/icons/bootstrap-icons.min.css" rel="stylesheet" />
+    <link href="~/css/sitio.css" rel="stylesheet" />
+    <asp:ContentPlaceHolder ID="head" runat="server">
+    </asp:ContentPlaceHolder>
+</head>
+<body>
+    <form id="form1" runat="server">
+
+        <!-- ================= ENCABEZADO + MENÚ ================= -->
+        <nav class="navbar navbar-expand-lg navbar-dark barra-sistema shadow-sm">
+            <div class="container">
+                <a class="navbar-brand d-flex align-items-center gap-2" href="<%= ResolveUrl("~/Inicio.aspx") %>">
+                    <img src="<%= ResolveUrl("~/imagenes/logo.svg") %>" alt="Logotipo" />
+                    <span>
+                        <span class="marca-titulo d-block">Sistema de Reservaciones</span>
+                        <span class="marca-sub">Espacios académicos · Ingeniería Full Stack</span>
+                    </span>
+                </a>
+
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menuPrincipal"
+                        aria-controls="menuPrincipal" aria-expanded="false" aria-label="Mostrar menú">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="collapse navbar-collapse" id="menuPrincipal">
+                    <ul class="navbar-nav mx-auto gap-1">
+                        <li class="nav-item"><a class="nav-link <%= Activa("Inicio.aspx") %>" href="<%= ResolveUrl("~/Inicio.aspx") %>"><i class="bi bi-house-door me-1"></i>Inicio</a></li>
+                        <li class="nav-item"><a class="nav-link <%= Activa("Reservar.aspx") %>" href="<%= ResolveUrl("~/Reservar.aspx") %>"><i class="bi bi-calendar-plus me-1"></i>Reservar</a></li>
+                        <li class="nav-item"><a class="nav-link <%= Activa("Disponibilidad.aspx") %>" href="<%= ResolveUrl("~/Disponibilidad.aspx") %>"><i class="bi bi-calendar2-week me-1"></i>Disponibilidad</a></li>
+                        <li class="nav-item"><a class="nav-link <%= Activa("Reservas.aspx") %>" href="<%= ResolveUrl("~/Reservas.aspx") %>"><i class="bi bi-list-check me-1"></i>Reservas</a></li>
+                        <li class="nav-item">
+                            <a class="nav-link <%= Activa("Notificaciones.aspx") %>" href="<%= ResolveUrl("~/Notificaciones.aspx") %>">
+                                <i class="bi bi-broadcast me-1"></i>Notificaciones
+                                <span id="contadorPush" class="badge rounded-pill bg-warning text-dark d-none">0</span>
+                            </a>
+                        </li>
+                        <li class="nav-item"><a class="nav-link <%= Activa("AcercaDe.aspx") %>" href="<%= ResolveUrl("~/AcercaDe.aspx") %>"><i class="bi bi-info-circle me-1"></i>Acerca de</a></li>
+                    </ul>
+
+                    <div class="d-flex flex-column align-items-lg-end gap-1">
+                        <div class="chip-usuario d-flex align-items-center gap-2">
+                            <i class="bi bi-person-circle"></i>
+                            <span>
+                                <asp:Label ID="lblNombre" runat="server" Text="Usuario"></asp:Label>
+                                · <asp:Label ID="lblRol" runat="server" CssClass="rol" Text="Rol"></asp:Label>
+                            </span>
+                            <asp:LinkButton ID="lnkSalir" runat="server" CssClass="btn btn-sm btn-light rounded-pill"
+                                ToolTip="Cerrar sesión" OnClick="lnkSalir_Click" CausesValidation="false">
+                                <i class="bi bi-box-arrow-right"></i> Salir
+                            </asp:LinkButton>
+                        </div>
+                        <div class="indicador-push"><span id="puntoPush" class="punto"></span><span id="textoPush">Conectando push...</span></div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- ================= CONTENIDO DE CADA PÁGINA ================= -->
+        <main class="contenido container py-4">
+            <asp:ContentPlaceHolder ID="MainContent" runat="server">
+            </asp:ContentPlaceHolder>
+        </main>
+
+        <!-- ================= PIE ================= -->
+        <footer class="pie-sistema py-3">
+            <div class="container d-flex flex-wrap justify-content-between gap-2">
+                <span>&copy; <%= DateTime.Now.Year %> Sistema de Reservaciones · Práctica Final Integradora · Ingeniería Full Stack</span>
+                <span><i class="bi bi-diagram-3 me-1"></i>Web API + Sitio Web · MySQL · AWS EC2 / RDS</span>
+            </div>
+        </footer>
+
+        <!-- Contenedor de notificaciones PUSH (toasts) -->
+        <div id="contenedorToasts" class="toast-container position-fixed bottom-0 end-0 p-3"></div>
+    </form>
+
+    <script src="<%= ResolveUrl("~/bootstrap/js/bootstrap.bundle.min.js") %>"></script>
+    <script>
+        // URL pública de la Web API para el canal PUSH (EventSource), definida en Web.config
+        window.API_PUBLICA = "<%= UrlApiPublica %>";
+    </script>
+    <script src="<%= ResolveUrl("~/js/push.js") %>"></script>
+    <asp:ContentPlaceHolder ID="scripts" runat="server">
+    </asp:ContentPlaceHolder>
+</body>
+</html>

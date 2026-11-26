@@ -1,0 +1,169 @@
+/* =========================================================
+   SISTEMA DE RESERVACIONES · Hoja de estilos principal
+   Paleta: azul institucional + verde azulado + ámbar
+   ========================================================= */
+:root {
+    --azul-900: #0f2744;
+    --azul-700: #1d4e89;
+    --verde: #12a39a;
+    --ambar: #f2a541;
+    --fondo: #f3f6fa;
+    --borde: #dbe4f0;
+    --texto: #1f2937;
+    --texto-suave: #64748b;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: var(--fondo);
+    color: var(--texto);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ---------- Encabezado y menú ---------- */
+.barra-sistema {
+    background: linear-gradient(135deg, var(--azul-900), var(--azul-700));
+    border-bottom: 4px solid var(--verde);
+}
+
+.barra-sistema .navbar-brand img { width: 40px; height: 40px; }
+.marca-titulo { font-weight: 700; letter-spacing: .3px; line-height: 1.1; }
+.marca-sub { font-size: .75rem; color: #bcd0ea; font-weight: 400; }
+
+.barra-sistema .nav-link {
+    color: #dbe7f6 !important;
+    border-radius: 8px;
+    padding: .45rem .8rem !important;
+    font-weight: 500;
+    transition: background .2s ease;
+}
+.barra-sistema .nav-link:hover,
+.barra-sistema .nav-link.active { background: rgba(255,255,255,.14); color: #fff !important; }
+
+.chip-usuario {
+    background: rgba(255,255,255,.12);
+    color: #fff;
+    border-radius: 30px;
+    padding: .3rem .4rem .3rem .9rem;
+    font-size: .85rem;
+}
+.chip-usuario .rol { color: var(--ambar); font-weight: 600; }
+
+.indicador-push { font-size: .78rem; color: #dbe7f6; }
+.punto { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 4px; background: #f2a541; }
+.punto.on { background: #34d399; box-shadow: 0 0 0 3px rgba(52,211,153,.25); }
+.punto.off { background: #f87171; }
+
+/* ---------- Contenido ---------- */
+.contenido { flex: 1; }
+
+.encabezado-pagina h1 { font-size: 1.55rem; font-weight: 700; color: var(--azul-900); margin: 0; }
+.encabezado-pagina p { color: var(--texto-suave); margin: .2rem 0 0; }
+
+.tarjeta {
+    background: #fff;
+    border: 1px solid var(--borde);
+    border-radius: 14px;
+    box-shadow: 0 6px 18px rgba(15, 39, 68, .06);
+    padding: 1.4rem;
+}
+.tarjeta-titulo { font-weight: 700; color: var(--azul-700); font-size: 1.05rem; margin-bottom: 1rem; }
+
+.kpi { display: flex; align-items: center; gap: 1rem; }
+.kpi .icono {
+    width: 52px; height: 52px; border-radius: 12px;
+    display: grid; place-items: center; font-size: 1.5rem; color: #fff;
+}
+.kpi .valor { font-size: 1.8rem; font-weight: 700; line-height: 1; }
+.kpi .etiqueta { color: var(--texto-suave); font-size: .85rem; }
+
+.bg-verde { background: var(--verde) !important; }
+.bg-azul { background: var(--azul-700) !important; }
+.bg-ambar { background: var(--ambar) !important; }
+.text-verde { color: var(--verde) !important; }
+
+.btn-primary { background: var(--azul-700); border-color: var(--azul-700); }
+.btn-primary:hover { background: var(--azul-900); border-color: var(--azul-900); }
+.btn-verde { background: var(--verde); border-color: var(--verde); color: #fff; }
+.btn-verde:hover { background: #0e857d; color: #fff; }
+
+/* ---------- Pasos del proceso ---------- */
+.pasos { display: grid; grid-template-columns: repeat(4, 1fr); gap: .75rem; }
+.paso {
+    border: 1px solid var(--borde); border-radius: 12px; padding: .9rem; background: #fff;
+    position: relative;
+}
+.paso .num {
+    width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+    background: #e8eef6; color: var(--azul-700); font-weight: 700; margin-bottom: .4rem;
+}
+.paso.hecho { border-color: var(--verde); background: #effaf9; }
+.paso.hecho .num { background: var(--verde); color: #fff; }
+.paso.error { border-color: #e5484d; background: #fff1f1; }
+.paso.error .num { background: #e5484d; color: #fff; }
+.paso small { color: var(--texto-suave); }
+@media (max-width: 768px) { .pasos { grid-template-columns: repeat(2, 1fr); } }
+
+/* ---------- Línea de tiempo de disponibilidad ---------- */
+.linea-tiempo { position: relative; height: 64px; background: #eef7f6; border: 1px solid #cdeae7; border-radius: 10px; }
+.linea-tiempo .bloque {
+    position: absolute; top: 8px; bottom: 8px; border-radius: 6px; color: #fff; font-size: .72rem;
+    padding: 2px 6px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+}
+.bloque.activa { background: #e5484d; }
+.bloque.cancelada { background: repeating-linear-gradient(45deg,#cbd5e1,#cbd5e1 6px,#e2e8f0 6px,#e2e8f0 12px); color: #475569; top: 40px; bottom: 6px; }
+.bloque.concluida { background: #94a3b8; }
+.bloque.solicitado { background: transparent; border: 3px dashed var(--azul-700); top: 2px; bottom: 2px; }
+.bloque.solicitado.libre { border-color: var(--verde); }
+.escala { position: relative; height: 18px; font-size: .7rem; color: var(--texto-suave); }
+.escala span { position: absolute; transform: translateX(-50%); }
+
+.resultado-disponible { border-left: 6px solid var(--verde); }
+.resultado-conflicto { border-left: 6px solid #e5484d; }
+
+/* ---------- Tabla de reservas ---------- */
+.tabla-reservas th { background: var(--azul-900) !important; color: #fff !important; font-weight: 600; font-size: .85rem; }
+.tabla-reservas td { vertical-align: middle; font-size: .9rem; }
+.badge-Activa { background: var(--verde); }
+.badge-Cancelada { background: #94a3b8; }
+.badge-Concluida { background: var(--azul-700); }
+
+/* ---------- Consola de notificaciones PUSH ---------- */
+.monitor {
+    background: #0b1c31; border-radius: 12px; min-height: 320px; max-height: 480px; overflow-y: auto; padding: 12px;
+    font-family: Consolas, 'Courier New', monospace;
+}
+.evento {
+    background: #12294a; border-left: 4px solid #60a5fa; border-radius: 6px; color: #e2e8f0;
+    padding: 9px 12px; margin-bottom: 8px; font-size: .85rem;
+}
+.evento.success { border-left-color: #34d399; }
+.evento.danger { border-left-color: #f87171; }
+.evento.warning { border-left-color: #fbbf24; }
+.evento.secondary { border-left-color: #94a3b8; }
+.evento .tipo { font-weight: 700; color: #fff; }
+.evento .meta { color: #94a3b8; font-size: .75rem; }
+.evento.sistema { border-left-color: #a78bfa; }
+
+.estado-pill { display: inline-block; border-radius: 20px; padding: 5px 14px; font-weight: 600; font-size: .85rem; }
+.estado-conectado { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+.estado-desconectado { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+.estado-conectando { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+
+/* Toasts de notificaciones en todas las páginas */
+.toast-push { min-width: 300px; border: 0; box-shadow: 0 10px 25px rgba(15,39,68,.25); }
+.toast-push .toast-header { color: #fff; }
+
+/* ---------- Login ---------- */
+.login-fondo { background: linear-gradient(135deg, #0f2744 0%, #1d4e89 60%, #12a39a 100%); }
+.login-caja { max-width: 960px; border-radius: 18px; overflow: hidden; box-shadow: 0 25px 60px rgba(0,0,0,.35); }
+.login-imagen { background: #0f2744; display: flex; align-items: center; justify-content: center; }
+.login-imagen img { width: 100%; height: 100%; object-fit: cover; }
+
+/* ---------- Pie ---------- */
+.pie-sistema { background: #fff; border-top: 1px solid var(--borde); color: var(--texto-suave); font-size: .85rem; }
+
+/* ---------- Acerca de ---------- */
+.integrante img { width: 96px; height: 96px; }
